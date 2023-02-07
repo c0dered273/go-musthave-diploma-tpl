@@ -131,3 +131,18 @@ func NewErrNotFound(err error, errorCode string, message string) *ErrNotFound {
 		),
 	}
 }
+
+type ErrNotAllowed struct {
+	*StatusError
+}
+
+func NewErrNotAllowed(err error, errorCode string, message string) *ErrNotAllowed {
+	return &ErrNotAllowed{
+		StatusError: newStatusError(
+			err,
+			http.StatusMethodNotAllowed,
+			errorCode,
+			message,
+		),
+	}
+}

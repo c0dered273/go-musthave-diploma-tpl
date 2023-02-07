@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/entities"
@@ -18,6 +19,8 @@ func NewHandler(logger zerolog.Logger, services services.ServiceContext) http.Ha
 	r.Use(httplog.RequestLogger(logger))
 	//r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
+	r.NotFound(notFound(logger))
+	r.MethodNotAllowed(notAllowed(logger))
 
 	r.Route("/health", func(r chi.Router) {
 		r.Get("/livez", liveProbe(logger))
@@ -25,6 +28,36 @@ func NewHandler(logger zerolog.Logger, services services.ServiceContext) http.Ha
 	})
 
 	return r
+}
+
+func notAllowed(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := entities.NewErrNotAllowed(
+			errors.New("method not allowed"),
+			"HTTP_ERROR",
+			"Method not allowed",
+		)
+		wsErr := entities.WriteStatusError(w, err)
+		if wsErr != nil {
+			logger.Error().Err(err)
+			return
+		}
+	}
+}
+
+func notFound(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := entities.NewErrNotFound(
+			errors.New("endpoint not found"),
+			"HTTP_ERROR",
+			"Endpoint not found",
+		)
+		wsErr := entities.WriteStatusError(w, err)
+		if wsErr != nil {
+			logger.Error().Err(err)
+			return
+		}
+	}
 }
 
 func liveProbe(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Request) {
