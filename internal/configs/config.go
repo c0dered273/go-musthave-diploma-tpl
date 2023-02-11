@@ -33,7 +33,7 @@ type Database struct {
 }
 
 type Connection struct {
-	PgxOptions map[string]string `mapstructure:"pgx_options"`
+	Options map[string]string `mapstructure:"options"`
 }
 
 type Server struct {

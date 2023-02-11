@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -33,37 +32,42 @@ var (
 
 func main() {
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
 
 	// logger, validator, config
-	logger := loggers.NewDefaultLogger()
-	logger.Info().Msg("server: init")
+	initLogger := loggers.NewDefaultLogger()
+	initLogger.Info().Msg("server: init")
 	validator := validators.NewValidatorTagName("mapstructure")
-	cfg, err := configs.NewServerConfig(configFileName, configFilePath, logger, validator)
+	cfg, err := configs.NewServerConfig(configFileName, configFilePath, initLogger, validator)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("server: config init failed")
+		initLogger.Fatal().Err(err).Msg("server: config init failed")
 	}
-	srvLogger := loggers.NewServerLogger(cfg)
+	logger := loggers.NewServerLogger(cfg)
 
 	// repository
-	repo, repErr := repositories.NewCrudRepository(serverCtx, logger, cfg)
-	if repErr != nil {
-		logger.Fatal().Err(repErr).Msg("server: DB connection init failed")
+	repo, err := repositories.NewCrudRepository(serverCtx, logger, cfg)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("server: DB connection init failed")
+	}
+
+	//migration
+	err = repositories.ApplyMigration(logger, repo)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("server: DB migration init failed")
 	}
 
 	// services
 	serviceContext := services.ServiceContext{
-		HealthService: services.NewHealthService(repo, srvLogger),
+		HealthService: services.NewHealthService(repo, logger),
 	}
 
 	// http server
-	handler := handlers.NewHandler(srvLogger, serviceContext)
+	handler := handlers.NewHandler(logger, serviceContext)
 	server := handlers.NewServer(serverCtx, cfg, handler)
 	ln, err := net.Listen("tcp", cfg.RunAddress)
 	if err != nil {
 		logger.Fatal().Err(err).Msgf("server: failed to start server on %s", cfg.RunAddress)
 	}
-	srvLogger.Info().Msgf("server: listening %s", cfg.RunAddress)
+	logger.Info().Msgf("server: listening %s", cfg.RunAddress)
 
 	go func() {
 		err = server.Serve(ln)
@@ -84,15 +88,18 @@ func main() {
 		go func() {
 			<-shutdownCtx.Done()
 			if shutdownCtx.Err() == context.DeadlineExceeded {
-				srvLogger.Fatal().Msg("server: graceful shutdown timed out.. forcing exit.")
+				logger.Fatal().Msg("server: graceful shutdown timed out.. forcing exit.")
 			}
 		}()
 
-		srvLogger.Info().Msg("server: shutting down..")
-		repo.Close()
+		logger.Info().Msg("server: shutting down..")
 		err = server.Shutdown(shutdownCtx)
 		if err != nil {
-			srvLogger.Fatal().Err(err).Msg("server: graceful shutdown failed")
+			logger.Error().Err(err).Msg("server: graceful shutdown failed")
+		}
+		err = repo.Close()
+		if err != nil {
+			logger.Error().Err(err).Msg("repository: graceful shutdown failed")
 		}
 
 		serverStopCtx()
@@ -100,5 +107,4 @@ func main() {
 	}()
 
 	<-serverCtx.Done()
-	wg.Wait()
 }

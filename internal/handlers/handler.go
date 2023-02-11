@@ -13,18 +13,20 @@ import (
 )
 
 func NewHandler(logger zerolog.Logger, services services.ServiceContext) http.Handler {
+	httpLogger := logger.With().Str("service", "handler").Logger()
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
 	//r.Use(middleware.RequestID)
-	r.Use(httplog.RequestLogger(logger))
+	r.Use(httplog.RequestLogger(httpLogger))
 	//r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
-	r.NotFound(notFound(logger))
-	r.MethodNotAllowed(notAllowed(logger))
+	r.NotFound(notFound(httpLogger))
+	r.MethodNotAllowed(notAllowed(httpLogger))
 
+	r.Mount("/debug", middleware.Profiler())
 	r.Route("/health", func(r chi.Router) {
-		r.Get("/livez", liveProbe(logger))
-		r.Get("/readyz", readyProbe(logger, services.HealthService))
+		r.Get("/livez", liveProbe(httpLogger))
+		r.Get("/readyz", readyProbe(httpLogger, services.HealthService))
 	})
 
 	return r
@@ -39,7 +41,7 @@ func notAllowed(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Reque
 		)
 		wsErr := entities.WriteStatusError(w, err)
 		if wsErr != nil {
-			logger.Error().Err(err)
+			logger.Error().Err(err).Send()
 			return
 		}
 	}
@@ -54,7 +56,7 @@ func notFound(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Request
 		)
 		wsErr := entities.WriteStatusError(w, err)
 		if wsErr != nil {
-			logger.Error().Err(err)
+			logger.Error().Err(err).Send()
 			return
 		}
 	}
@@ -66,7 +68,7 @@ func liveProbe(logger zerolog.Logger) func(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("."))
 		if err != nil {
-			logger.Error().Err(err)
+			logger.Error().Err(err).Send()
 		}
 	}
 }
@@ -77,14 +79,14 @@ func readyProbe(logger zerolog.Logger, health services.HealthService) func(w htt
 		if err := health.DBConnPing(r.Context()); err != nil {
 			errSts := entities.WriteStatusError(w, err)
 			if errSts != nil {
-				logger.Error().Err(errSts)
+				logger.Error().Err(errSts).Send()
 			}
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("."))
 		if err != nil {
-			logger.Error().Err(err)
+			logger.Error().Err(err).Send()
 		}
 	}
 }
