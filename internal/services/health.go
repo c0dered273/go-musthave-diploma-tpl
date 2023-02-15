@@ -3,31 +3,31 @@ package services
 import (
 	"context"
 
-	"github.com/c0dered273/go-musthave-diploma-tpl/internal/entities"
-	"github.com/c0dered273/go-musthave-diploma-tpl/internal/repositories"
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
 	"github.com/rs/zerolog"
 )
 
 type HealthService interface {
-	DBConnPing(ctx context.Context) error
+	ConnPing(ctx context.Context) error
 }
 
 type HealthServiceImpl struct {
-	repo   repositories.Repository
-	logger zerolog.Logger
+	connCheck store.ConnCheck
+	logger    zerolog.Logger
 }
 
-func NewHealthService(repo repositories.Repository, logger zerolog.Logger) HealthService {
-	return HealthServiceImpl{
-		repo:   repo,
-		logger: logger,
+func NewHealthService(logger zerolog.Logger, connCheck store.ConnCheck) HealthService {
+	return &HealthServiceImpl{
+		connCheck: connCheck,
+		logger:    logger,
 	}
 }
 
-func (h HealthServiceImpl) DBConnPing(ctx context.Context) error {
-	err := h.repo.Ping(ctx)
+func (h HealthServiceImpl) ConnPing(ctx context.Context) error {
+	err := h.connCheck.Ping(ctx)
 	if err != nil {
-		return entities.NewErrInternal(err, "DB_ERROR", "Connection check failed")
+		return models.NewErrInternal(err, "DB_ERROR", "Connection check failed")
 	}
 	return nil
 }

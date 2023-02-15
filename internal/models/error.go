@@ -1,8 +1,9 @@
-package entities
+package models
 
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/mailru/easyjson"
 	_ "github.com/mailru/easyjson/gen"
@@ -15,10 +16,11 @@ type HttpError interface {
 //go:generate easyjson error.go
 //easyjson:json
 type StatusError struct {
-	Err       error  `json:"-"`
-	HttpCode  int    `json:"-"`
-	ErrorCode string `json:"errorCode"`
-	Message   string `json:"message"`
+	Err       error     `json:"-"`
+	HttpCode  int       `json:"-"`
+	Timestamp time.Time `json:"timestamp"`
+	ErrorCode string    `json:"errorCode"`
+	Message   string    `json:"message"`
 }
 
 func (se *StatusError) Error() string {
@@ -40,21 +42,21 @@ func newStatusError(err error, httpCode int, errorCode string, message string) *
 	return &StatusError{
 		Err:       err,
 		HttpCode:  httpCode,
+		Timestamp: time.Now(),
 		ErrorCode: errorCode,
 		Message:   message,
 	}
 }
 
-func WriteStatusError(w http.ResponseWriter, err error) error {
+func WriteStatusError(w http.ResponseWriter, err error) {
 	if statusErr, ok := err.(HttpError); ok {
 		errSts := statusErr.HttpError(w)
 		if errSts != nil {
-			return errSts
+			panic(err)
 		}
 	} else {
-		return errors.New("status error: failed to cast err to HttpError")
+		panic(errors.New("status error: failed to cast err to HttpError"))
 	}
-	return nil
 }
 
 type ErrInternal struct {
@@ -141,6 +143,21 @@ func NewErrNotAllowed(err error, errorCode string, message string) *ErrNotAllowe
 		StatusError: newStatusError(
 			err,
 			http.StatusMethodNotAllowed,
+			errorCode,
+			message,
+		),
+	}
+}
+
+type ErrConflict struct {
+	*StatusError
+}
+
+func NewErrConflict(err error, errorCode string, message string) *ErrConflict {
+	return &ErrConflict{
+		StatusError: newStatusError(
+			err,
+			http.StatusConflict,
 			errorCode,
 			message,
 		),

@@ -5,6 +5,7 @@ import (
 
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/validators"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -17,6 +18,7 @@ var (
 		"RUN_ADDRESS",
 		"DATABASE_URI",
 		"ACCRUAL_SYSTEM_ADDRESS",
+		"API_SECRET",
 	}
 )
 
@@ -24,12 +26,14 @@ type ServerConfig struct {
 	RunAddress           string   `mapstructure:"run_address" validate:"required"`
 	DatabaseUri          string   `mapstructure:"database_uri" validate:"required"`
 	AccrualSystemAddress string   `mapstructure:"accrual_system_address" validate:"required"`
+	ApiSecret            string   `mapstructure:"api_secret" validate:"required"`
 	Database             Database `mapstructure:"database"`
 	Server               Server   `mapstructure:"server"`
 }
 
 type Database struct {
-	Connection Connection `mapstructure:"connection"`
+	LoggerLevel string     `mapstructure:"logger_level"`
+	Connection  Connection `mapstructure:"connection"`
 }
 
 type Connection struct {
@@ -37,13 +41,10 @@ type Connection struct {
 }
 
 type Server struct {
-	Name   string `mapstructure:"name"`
-	Logger Logger `mapstructure:"logger"`
-	Config Config `mapstructure:"config"`
-}
-
-type Config struct {
-	Debug bool `mapstructure:"debug"`
+	Name        string `mapstructure:"name"`
+	Logger      Logger `mapstructure:"logger"`
+	DebugConfig bool   `mapstructure:"debug_config"`
+	PprofEnable bool   `mapstructure:"pprof_enable"`
 }
 
 type Logger struct {
@@ -64,7 +65,15 @@ func bindPFlags() error {
 	return nil
 }
 
+func setDefaults() {
+	viper.SetDefault("api_secret", uuid.NewString())
+	viper.SetDefault("database.logger_level", "info")
+	viper.SetDefault("server.logger.level", "info")
+}
+
 func NewServerConfig(filename string, configPath []string, logger zerolog.Logger, validator *validator.Validate) (*ServerConfig, error) {
+	setDefaults()
+
 	err := bindConfigFile(filename, configPath, logger)
 	if err != nil {
 		return nil, err
@@ -133,7 +142,7 @@ func newConfig() (*ServerConfig, error) {
 func logDebugInfo(cfg *ServerConfig, logger zerolog.Logger) {
 	var debug bytes.Buffer
 	viper.DebugTo(&debug)
-	if cfg.Server.Config.Debug {
+	if cfg.Server.DebugConfig {
 		logger.Debug().Msgf("config: debug info \n%s", debug.String())
 	}
 }

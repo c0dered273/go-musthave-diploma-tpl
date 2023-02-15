@@ -2,16 +2,19 @@ run_address: "localhost:8080"
 accrual_system_address: "localhost:8081"
 
 database:
+  logger_level: "info"
   connection:
     options:
-      max_open_conns: 10
-      max_conn_lifetime_time: 120s
+      pool_max_conns: 10
+      pool_min_conns: 2
+      pool_max_conn_lifetime: 120s
+      pool_max_conn_idle_time: 30s
 
 server:
   name: "gophermart"
-  config:
-    debug: false
+  debug_config: false
+  pprof_enable: true
   logger:
-    level: "DEBUG"
+    level: "debug"
     caller: false
     format: "pretty"

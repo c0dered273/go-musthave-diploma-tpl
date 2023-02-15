@@ -15,6 +15,7 @@ import (
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/loggers"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/repositories"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/services"
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/validators"
 )
 
@@ -43,25 +44,28 @@ func main() {
 	}
 	logger := loggers.NewServerLogger(cfg)
 
-	// repository
-	repo, err := repositories.NewCrudRepository(serverCtx, logger, cfg)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("server: DB connection init failed")
-	}
-
 	//migration
-	err = repositories.ApplyMigration(logger, repo)
+	err = repositories.ApplyMigration(logger, cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("server: DB migration init failed")
 	}
 
+	// repositories
+	conn, err := store.NewPgxConn(serverCtx, logger, cfg)
+	connCheck := store.NewPgxConnCheck(conn)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("server: DB connection init failed")
+	}
+	usersRepo := repositories.NewUserRepository(conn)
+
 	// services
-	serviceContext := services.ServiceContext{
-		HealthService: services.NewHealthService(repo, logger),
+	serviceContext := &services.ServiceContext{
+		HealthService: services.NewHealthService(logger, connCheck),
+		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo),
 	}
 
 	// http server
-	handler := handlers.NewHandler(logger, serviceContext)
+	handler := handlers.NewHandler(logger, cfg, serviceContext)
 	server := handlers.NewServer(serverCtx, cfg, handler)
 	ln, err := net.Listen("tcp", cfg.RunAddress)
 	if err != nil {
@@ -97,10 +101,8 @@ func main() {
 		if err != nil {
 			logger.Error().Err(err).Msg("server: graceful shutdown failed")
 		}
-		err = repo.Close()
-		if err != nil {
-			logger.Error().Err(err).Msg("repository: graceful shutdown failed")
-		}
+
+		conn.Close()
 
 		serverStopCtx()
 		shutdownCancelCtx()
