@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/configs"
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/repositories"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
@@ -18,7 +19,6 @@ import (
 var (
 	ErrUserAlreadyExist  = models.NewErrConflict(nil, "USER_ERROR", "Username already exists")
 	ErrWrongLoginPasswd  = models.NewErrUnauthorized(nil, "USER_ERROR", "Wrong login or password")
-	ErrInvalidToken      = models.NewErrUnauthorized(nil, "USER_ERROR", "Access token invalid")
 	ErrRequestValidation = models.NewErrBadRequest(nil, "SERVER_ERROR", "Request validation failed")
 	ErrInternal          = models.NewErrInternal(nil, "SERVER_ERROR", "Internal error")
 )
@@ -26,7 +26,7 @@ var (
 type UsersService interface {
 	NewUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	LoginUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
-	GetWithdrawals(ctx context.Context, tokenString string) (string, error)
+	GetWithdrawals(ctx context.Context) (string, error)
 }
 
 type UsersServiceImpl struct {
@@ -66,24 +66,8 @@ func (us *UsersServiceImpl) NewUser(ctx context.Context, login *models.LoginRequ
 		return models.AuthResponseDTO{}, ErrInternal
 	}
 
-	claim := models.AuthClaim{
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: jwt.NewNumericDate(time.Now()),
-			ID:       login.ToUser().Username,
-		},
-	}
-	tokenString, err := generateToken(claim, us.cfg.ApiSecret)
-	if err != nil {
-		us.logger.Error().Err(err).Send()
-		return models.AuthResponseDTO{}, ErrInternal
-	}
-
-	return models.AuthResponseDTO{
-		AccessToken: tokenString,
-	}, nil
+	return us.getAuthResponse(login)
 }
-
-// TODO("Убрать копипасту")
 
 func (us *UsersServiceImpl) LoginUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error) {
 	err := us.loginValidation(login)
@@ -101,26 +85,13 @@ func (us *UsersServiceImpl) LoginUser(ctx context.Context, login *models.LoginRe
 		return models.AuthResponseDTO{}, ErrWrongLoginPasswd
 	}
 
-	claim := models.AuthClaim{
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: jwt.NewNumericDate(time.Now()),
-			ID:       user.Username,
-		},
-	}
-	tokenString, err := generateToken(claim, us.cfg.ApiSecret)
-	if err != nil {
-		us.logger.Error().Err(err).Send()
-		return models.AuthResponseDTO{}, ErrInternal
-	}
-
-	return models.AuthResponseDTO{
-		AccessToken: tokenString,
-	}, nil
+	return us.getAuthResponse(login)
 }
 
-func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context, tokenString string) (string, error) {
+func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context) (string, error) {
 	// TODO("Implement")
-	return us.authenticateUser(tokenString)
+	claim, _ := ctx.Value(middleware.ClaimCtxKey{}).(*models.AuthClaim)
+	return claim.ID, nil
 }
 
 func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error {
@@ -132,23 +103,26 @@ func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error
 	return nil
 }
 
-func (us *UsersServiceImpl) authenticateUser(tokenString string) (string, error) {
-	claims := &models.AuthClaim{
-		RegisteredClaims: jwt.RegisteredClaims{},
-	}
-	err := validateToken(tokenString, us.cfg.ApiSecret, claims)
+func (us *UsersServiceImpl) getAuthResponse(login *models.LoginRequestDTO) (models.AuthResponseDTO, error) {
+	tokenString, err := generateToken(login.ToUser(), us.cfg.ApiSecret)
 	if err != nil {
 		us.logger.Error().Err(err).Send()
-		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
-			return "", ErrInvalidToken
-		}
-		return "", err
+		return models.AuthResponseDTO{}, ErrInternal
 	}
 
-	return claims.ID, nil
+	return models.AuthResponseDTO{
+		AccessToken: tokenString,
+	}, nil
 }
 
-func generateToken(claim models.AuthClaim, secret string) (string, error) {
+func generateToken(user *models.User, secret string) (string, error) {
+	claim := models.AuthClaim{
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt: jwt.NewNumericDate(time.Now()),
+			ID:       user.Username,
+		},
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
@@ -156,18 +130,4 @@ func generateToken(claim models.AuthClaim, secret string) (string, error) {
 	}
 
 	return tokenString, nil
-}
-
-func validateToken(tokenString string, secret string, claim *models.AuthClaim) error {
-	token, err := jwt.ParseWithClaims(tokenString, claim, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
-	})
-	if err != nil {
-		return err
-	}
-	if _, ok := token.Claims.(*models.AuthClaim); !(ok && token.Valid) {
-		return ErrInvalidToken
-	}
-
-	return nil
 }

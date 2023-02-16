@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/services"
@@ -14,11 +13,8 @@ import (
 
 var (
 	ErrParseRequest = models.NewErrBadRequest(nil, "BAD_REQUEST", "Failed to parse request")
-	ErrNoAuthHeader = models.NewErrBadRequest(nil, "BAD_REQUEST", "No authorization header")
 	ErrServerError  = models.NewErrInternal(nil, "SERVER_ERROR", "Internal error")
 )
-
-// TODO("Убрать копипасту")
 
 func registerUser(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -102,17 +98,10 @@ func loginUser(logger zerolog.Logger, service services.UsersService) func(w http
 
 func withdrawals(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authorization := r.Header.Get("Authorization")
-		if len(authorization) == 0 {
-			models.WriteStatusError(w, ErrNoAuthHeader)
-			return
-		}
-
-		tokenString := strings.Split(authorization, "Bearer ")[1]
 
 		// TODO("Implement")
 
-		usrname, err := service.GetWithdrawals(r.Context(), tokenString)
+		usrname, err := service.GetWithdrawals(r.Context())
 		if err != nil {
 			models.WriteStatusError(w, err)
 			return

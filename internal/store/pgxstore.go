@@ -93,8 +93,8 @@ func NewPgxConnCheck(conn *pgxpool.Pool) ConnCheck {
 }
 
 func SaveUser(ctx context.Context, conn *pgxpool.Pool, u *models.User) error {
-	sql := `INSERT INTO users(username, password) 
-				VALUES($1, crypt($2, gen_salt('bf'))) 
+	sql := `INSERT INTO users(username, password, balance) 
+				VALUES($1, crypt($2, gen_salt('bf')), 0) 
 				ON CONFLICT DO NOTHING`
 
 	n, err := conn.Exec(ctx, strip(sql), u.Username, u.Password)

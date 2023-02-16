@@ -40,7 +40,11 @@ func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *serv
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", registerUser(httpLogger, services.UsersService))
 		r.Post("/login", loginUser(httpLogger, services.UsersService))
-		r.Get("/withdrawals", withdrawals(logger, services.UsersService))
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware2.JwtVerifier(httpLogger, cfg.ApiSecret))
+			r.Get("/withdrawals", withdrawals(logger, services.UsersService))
+		})
 	})
 
 	return r
