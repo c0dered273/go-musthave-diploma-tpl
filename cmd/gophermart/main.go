@@ -57,11 +57,12 @@ func main() {
 		logger.Fatal().Err(err).Msg("server: DB connection init failed")
 	}
 	usersRepo := repositories.NewUserRepository(conn)
+	ordersRepo := repositories.NewOrderRepository(conn)
 
 	// services
 	serviceContext := &services.ServiceContext{
 		HealthService: services.NewHealthService(logger, connCheck),
-		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo),
+		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo, ordersRepo),
 	}
 
 	// http server

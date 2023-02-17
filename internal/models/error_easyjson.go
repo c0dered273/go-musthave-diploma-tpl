@@ -58,7 +58,7 @@ func easyjsonE34310f8EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 	out.RawByte('{')
 	first := true
 	_ = first
-	{
+	if true {
 		const prefix string = ",\"timestamp\":"
 		if first {
 			first = false
@@ -68,14 +68,24 @@ func easyjsonE34310f8EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 		}
 		out.Raw((in.Timestamp).MarshalJSON())
 	}
-	{
+	if in.ErrorCode != "" {
 		const prefix string = ",\"errorCode\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(in.ErrorCode))
 	}
-	{
+	if in.Message != "" {
 		const prefix string = ",\"message\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(in.Message))
 	}
 	out.RawByte('}')

@@ -13,6 +13,6 @@ type OrdersService interface {
 type OrdersServiceImpl struct {
 	validator *validator.Validate
 	cfg       *configs.ServerConfig
-	repo      repositories.UsersRepository
+	usersRepo repositories.UserRepository
 	logger    zerolog.Logger
 }

@@ -18,9 +18,9 @@ type HttpError interface {
 type StatusError struct {
 	Err       error     `json:"-"`
 	HttpCode  int       `json:"-"`
-	Timestamp time.Time `json:"timestamp"`
-	ErrorCode string    `json:"errorCode"`
-	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp,omitempty"`
+	ErrorCode string    `json:"errorCode,omitempty"`
+	Message   string    `json:"message,omitempty"`
 }
 
 func (se *StatusError) Error() string {
@@ -38,7 +38,7 @@ func (se *StatusError) HttpError(w http.ResponseWriter) error {
 	return nil
 }
 
-func newStatusError(err error, httpCode int, errorCode string, message string) *StatusError {
+func NewStatusError(err error, httpCode int, errorCode string, message string) *StatusError {
 	return &StatusError{
 		Err:       err,
 		HttpCode:  httpCode,
@@ -65,7 +65,7 @@ type ErrInternal struct {
 
 func NewErrInternal(err error, errorCode string, message string) *ErrInternal {
 	return &ErrInternal{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusInternalServerError,
 			errorCode,
@@ -80,7 +80,7 @@ type ErrBadRequest struct {
 
 func NewErrBadRequest(err error, errorCode string, message string) *ErrBadRequest {
 	return &ErrBadRequest{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusBadRequest,
 			errorCode,
@@ -95,7 +95,7 @@ type ErrUnauthorized struct {
 
 func NewErrUnauthorized(err error, errorCode string, message string) *ErrUnauthorized {
 	return &ErrUnauthorized{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusUnauthorized,
 			errorCode,
@@ -110,7 +110,7 @@ type ErrForbidden struct {
 
 func NewErrForbidden(err error, errorCode string, message string) *ErrForbidden {
 	return &ErrForbidden{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusForbidden,
 			errorCode,
@@ -125,7 +125,7 @@ type ErrNotFound struct {
 
 func NewErrNotFound(err error, errorCode string, message string) *ErrNotFound {
 	return &ErrNotFound{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusNotFound,
 			errorCode,
@@ -140,7 +140,7 @@ type ErrNotAllowed struct {
 
 func NewErrNotAllowed(err error, errorCode string, message string) *ErrNotAllowed {
 	return &ErrNotAllowed{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusMethodNotAllowed,
 			errorCode,
@@ -155,10 +155,25 @@ type ErrConflict struct {
 
 func NewErrConflict(err error, errorCode string, message string) *ErrConflict {
 	return &ErrConflict{
-		StatusError: newStatusError(
+		StatusError: NewStatusError(
 			err,
 			http.StatusConflict,
 			errorCode,
+			message,
+		),
+	}
+}
+
+type HttpStatusCreated struct {
+	*StatusError
+}
+
+func NewStatusCreated(message string) *HttpStatusCreated {
+	return &HttpStatusCreated{
+		StatusError: NewStatusError(
+			nil,
+			http.StatusAccepted,
+			"",
 			message,
 		),
 	}

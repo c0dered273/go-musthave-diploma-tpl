@@ -8,17 +8,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type UsersRepository interface {
+type UserRepository interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	Save(ctx context.Context, u *models.User) error
-	FindUserByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error)
+	FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error)
 }
 
 type UsersRepositoryImpl struct {
 	Conn *pgxpool.Pool
 }
 
-func NewUserRepository(conn *pgxpool.Pool) UsersRepository {
+func NewUserRepository(conn *pgxpool.Pool) UserRepository {
 	return &UsersRepositoryImpl{
 		Conn: conn,
 	}
@@ -40,7 +40,7 @@ func (r *UsersRepositoryImpl) Save(ctx context.Context, u *models.User) error {
 	return store.SaveUser(ctx, conn, u)
 }
 
-func (r *UsersRepositoryImpl) FindUserByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error) {
+func (r *UsersRepositoryImpl) FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error) {
 	conn, err := getPgxConn(ctx, r)
 	if err != nil {
 		return nil, err

@@ -17,7 +17,7 @@ import (
 func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *services.ServiceContext) http.Handler {
 	httpLogger := logger.With().Str("module", "handler").Logger()
 	r := chi.NewRouter()
-	r.Use(middleware.AllowContentType("application/json"))
+	r.Use(middleware.AllowContentType("text/plain", "application/json"))
 	r.Use(middleware.RealIP)
 	//r.Use(middleware.RequestID)
 	r.Use(httplog.RequestLogger(httpLogger))
@@ -43,6 +43,7 @@ func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *serv
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware2.JwtVerifier(httpLogger, cfg.ApiSecret))
+			r.Post("/orders", addOrders(logger, services.UsersService))
 			r.Get("/withdrawals", withdrawals(logger, services.UsersService))
 		})
 	})

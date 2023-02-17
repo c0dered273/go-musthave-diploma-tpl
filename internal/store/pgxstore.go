@@ -15,7 +15,9 @@ import (
 )
 
 var (
-	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserAlreadyExists  = errors.New("user already exists")
+	ErrOrderAlreadyExists = errors.New("order already exists")
+	ErrNotFound           = errors.New("not found")
 )
 
 func NewPgxConn(ctx context.Context, logger zerolog.Logger, cfg *configs.ServerConfig) (*pgxpool.Pool, error) {
@@ -117,13 +119,66 @@ func FindUserByNameAndPasswd(
 	var username string
 	err := conn.QueryRow(ctx, sql, name, passwd).Scan(&username)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return &models.User{
 		Username: username,
 		Password: "",
 	}, nil
+}
+
+func SaveOrder(
+	ctx context.Context,
+	conn *pgxpool.Pool,
+	order *models.Order,
+) error {
+	sql := `INSERT INTO orders(id, status_id, user_id, amount, uploaded_at) 
+			VALUES ($1,
+			        (SELECT os.id FROM order_status os WHERE os.name = $2),
+			        (SELECT u.id FROM users u WHERE u.username = $3),
+			        $4,
+			        $5)
+			ON CONFLICT DO NOTHING`
+
+	commandTag, err := conn.Exec(ctx, strip(sql), order.ID, order.Status, order.Username, order.Amount, order.UploadedAt)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return ErrOrderAlreadyExists
+	}
+
+	return nil
+}
+
+func FindOrderByID(ctx context.Context, conn *pgxpool.Pool, orderID uint64) (*models.Order, error) {
+	sql := `SELECT o.id, u.username, os.name, o.amount, o.uploaded_at
+			FROM orders o
+					 INNER JOIN users u on o.user_id = u.id
+					 INNER JOIN order_status os on o.status_id = os.id
+			WHERE o.id = $1;`
+
+	var status string
+	order := models.Order{}
+
+	err := conn.QueryRow(ctx, strip(sql), orderID).Scan(&order.ID, &order.Username, &status, &order.Amount, &order.UploadedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	if os, err := models.ParseStatus(status); err != nil {
+		return nil, err
+	} else {
+		order.Status = os
+	}
+
+	return &order, nil
 }
