@@ -19,6 +19,7 @@ const (
 
 var (
 	statusString = []string{
+		"",
 		"NEW",
 		"PROCESSING",
 		"INVALID",
@@ -56,18 +57,37 @@ type Order struct {
 }
 
 func (o Order) toOrderDTO() OrderDTO {
+	if o.Amount == nil {
+		o.Amount = &decimal.Zero
+	}
+
 	return OrderDTO{
 		ID:         o.ID,
-		Status:     o.Status,
-		Amount:     o.Amount,
+		Status:     o.Status.String(),
+		Amount:     o.Amount.InexactFloat64(),
 		UploadedAt: o.UploadedAt,
 	}
 }
 
+type Orders []Order
+
+func ToOrdersDTO(o Orders) OrdersDTO {
+	l := len(o)
+	ordersDTO := make([]OrderDTO, l)
+	for i := range o {
+		ordersDTO[i] = o[i].toOrderDTO()
+	}
+
+	return ordersDTO
+}
+
 //easyjson:json
 type OrderDTO struct {
-	ID         uint64           `json:"number"`
-	Status     OrderStatus      `json:"status"`
-	Amount     *decimal.Decimal `json:"accrual,omitempty"`
-	UploadedAt time.Time        `json:"uploaded_at"`
+	ID         uint64    `json:"number"`
+	Status     string    `json:"status"`
+	Amount     float64   `json:"accrual,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }
+
+//easyjson:json
+type OrdersDTO []OrderDTO

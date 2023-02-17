@@ -42,6 +42,7 @@ type UsersService interface {
 	NewUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	LoginUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	CreateOrders(ctx context.Context, orderNumber string) error
+	GetUserOrders(ctx context.Context) (models.OrdersDTO, error)
 
 	GetWithdrawals(ctx context.Context) (string, error)
 }
@@ -160,6 +161,21 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 	}
 
 	return nil
+}
+
+func (us *UsersServiceImpl) GetUserOrders(ctx context.Context) (models.OrdersDTO, error) {
+	claim, err := claimFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	orders, err := us.orderRepo.FindOrdersByUsername(ctx, claim.ID)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return nil, ErrInternal
+	}
+
+	return models.ToOrdersDTO(orders), nil
 }
 
 func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context) (string, error) {

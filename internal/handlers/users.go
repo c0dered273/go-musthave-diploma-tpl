@@ -112,6 +112,7 @@ func addOrders(logger zerolog.Logger, service services.UsersService) func(w http
 			models.WriteStatusError(w, ErrParseRequest)
 			return
 		}
+		defer r.Body.Close()
 
 		err = service.CreateOrders(r.Context(), string(body))
 		if err != nil {
@@ -120,6 +121,30 @@ func addOrders(logger zerolog.Logger, service services.UsersService) func(w http
 		}
 
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func getUserOrders(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orders, err := service.GetUserOrders(r.Context())
+		if err != nil {
+			models.WriteStatusError(w, err)
+			return
+		}
+
+		if len(orders) == 0 {
+			http.Error(w, "no content", http.StatusNoContent)
+			return
+		}
+
+		ordersResponse, err := easyjson.Marshal(orders)
+
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(ordersResponse)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			return
+		}
 	}
 }
 

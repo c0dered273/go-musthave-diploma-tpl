@@ -157,7 +157,7 @@ func SaveOrder(
 }
 
 func FindOrderByID(ctx context.Context, conn *pgxpool.Pool, orderID uint64) (*models.Order, error) {
-	sql := `SELECT o.id, u.username, os.name, o.amount, o.uploaded_at
+	sql := `SELECT o.id, os.name, u.username, o.amount, o.uploaded_at
 			FROM orders o
 					 INNER JOIN users u on o.user_id = u.id
 					 INNER JOIN order_status os on o.status_id = os.id
@@ -166,7 +166,7 @@ func FindOrderByID(ctx context.Context, conn *pgxpool.Pool, orderID uint64) (*mo
 	var status string
 	order := models.Order{}
 
-	err := conn.QueryRow(ctx, strip(sql), orderID).Scan(&order.ID, &order.Username, &status, &order.Amount, &order.UploadedAt)
+	err := conn.QueryRow(ctx, strip(sql), orderID).Scan(&order.ID, &status, &order.Username, &order.Amount, &order.UploadedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
@@ -181,4 +181,38 @@ func FindOrderByID(ctx context.Context, conn *pgxpool.Pool, orderID uint64) (*mo
 	}
 
 	return &order, nil
+}
+
+func FindOrdersByUsername(ctx context.Context, conn *pgxpool.Pool, username string) (models.Orders, error) {
+	sql := `SELECT o.id, os.name, u.username, o.amount, o.uploaded_at 
+			FROM orders o 
+			    INNER JOIN order_status os on o.status_id = os.id 
+			    INNER JOIN users u on o.user_id = u.id 
+			WHERE u.username = $1`
+
+	orders := make([]models.Order, 0)
+
+	rows, err := conn.Query(ctx, strip(sql), username)
+	if err != nil {
+		return nil, err
+	}
+
+	var status string
+	o := models.Order{}
+	for rows.Next() {
+		err := rows.Scan(&o.ID, &status, &o.Username, &o.Amount, &o.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		if os, err := models.ParseStatus(status); err != nil {
+			return nil, err
+		} else {
+			o.Status = os
+		}
+
+		orders = append(orders, o)
+	}
+
+	return orders, nil
 }

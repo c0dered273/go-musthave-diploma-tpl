@@ -7,7 +7,6 @@ import (
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
-	decimal "github.com/shopspring/decimal"
 )
 
 // suppress unused package warning
@@ -18,7 +17,73 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(in *jlexer.Lexer, out *OrderDTO) {
+func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(in *jlexer.Lexer, out *OrdersDTO) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		in.Skip()
+		*out = nil
+	} else {
+		in.Delim('[')
+		if *out == nil {
+			if !in.IsDelim(']') {
+				*out = make(OrdersDTO, 0, 1)
+			} else {
+				*out = OrdersDTO{}
+			}
+		} else {
+			*out = (*out)[:0]
+		}
+		for !in.IsDelim(']') {
+			var v1 OrderDTO
+			(v1).UnmarshalEasyJSON(in)
+			*out = append(*out, v1)
+			in.WantComma()
+		}
+		in.Delim(']')
+	}
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(out *jwriter.Writer, in OrdersDTO) {
+	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+		out.RawString("null")
+	} else {
+		out.RawByte('[')
+		for v2, v3 := range in {
+			if v2 > 0 {
+				out.RawByte(',')
+			}
+			(v3).MarshalEasyJSON(out)
+		}
+		out.RawByte(']')
+	}
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v OrdersDTO) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v OrdersDTO) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *OrdersDTO) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *OrdersDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(l, v)
+}
+func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(in *jlexer.Lexer, out *OrderDTO) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -40,19 +105,9 @@ func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 		case "number":
 			out.ID = uint64(in.Uint64())
 		case "status":
-			out.Status = OrderStatus(in.Int())
+			out.Status = string(in.String())
 		case "accrual":
-			if in.IsNull() {
-				in.Skip()
-				out.Amount = nil
-			} else {
-				if out.Amount == nil {
-					out.Amount = new(decimal.Decimal)
-				}
-				if data := in.Raw(); in.Ok() {
-					in.AddError((*out.Amount).UnmarshalJSON(data))
-				}
-			}
+			out.Amount = float64(in.Float64())
 		case "uploaded_at":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.UploadedAt).UnmarshalJSON(data))
@@ -67,7 +122,7 @@ func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 		in.Consumed()
 	}
 }
-func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(out *jwriter.Writer, in OrderDTO) {
+func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(out *jwriter.Writer, in OrderDTO) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -79,12 +134,12 @@ func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 	{
 		const prefix string = ",\"status\":"
 		out.RawString(prefix)
-		out.Int(int(in.Status))
+		out.String(string(in.Status))
 	}
-	if in.Amount != nil {
+	if in.Amount != 0 {
 		const prefix string = ",\"accrual\":"
 		out.RawString(prefix)
-		out.Raw((*in.Amount).MarshalJSON())
+		out.Float64(float64(in.Amount))
 	}
 	{
 		const prefix string = ",\"uploaded_at\":"
@@ -97,23 +152,23 @@ func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 // MarshalJSON supports json.Marshaler interface
 func (v OrderDTO) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&w, v)
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v OrderDTO) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(w, v)
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *OrderDTO) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&r, v)
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *OrderDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(l, v)
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(l, v)
 }
