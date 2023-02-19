@@ -216,3 +216,29 @@ func FindOrdersByUsername(ctx context.Context, conn *pgxpool.Pool, username stri
 
 	return orders, nil
 }
+
+func FindWithdrawalsByUsername(ctx context.Context, conn *pgxpool.Pool, username string) (models.Withdrawals, error) {
+	sql := `SELECT w.order_id, u.username, w.amount, w.processed_at 
+			FROM withdrawals w 
+			    INNER JOIN users u on u.id = w.user_id 
+			WHERE u.username = $1`
+
+	withdrawals := make([]models.Withdrawal, 0)
+
+	rows, err := conn.Query(ctx, strip(sql), username)
+	if err != nil {
+		return nil, err
+	}
+
+	w := models.Withdrawal{}
+	for rows.Next() {
+		err := rows.Scan(&w.OrderID, &w.Username, &w.Amount, &w.ProcessedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		withdrawals = append(withdrawals, w)
+	}
+
+	return withdrawals, nil
+}

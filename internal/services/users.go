@@ -43,16 +43,16 @@ type UsersService interface {
 	LoginUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	CreateOrders(ctx context.Context, orderNumber string) error
 	GetUserOrders(ctx context.Context) (models.OrdersDTO, error)
-
-	GetWithdrawals(ctx context.Context) (string, error)
+	GetWithdrawals(ctx context.Context) (models.WithdrawalsDTO, error)
 }
 
 type UsersServiceImpl struct {
-	validator *validator.Validate
-	cfg       *configs.ServerConfig
-	userRepo  repositories.UserRepository
-	orderRepo repositories.OrderRepository
-	logger    zerolog.Logger
+	validator      *validator.Validate
+	cfg            *configs.ServerConfig
+	userRepo       repositories.UserRepository
+	orderRepo      repositories.OrderRepository
+	withdrawalRepo repositories.WithdrawalRepository
+	logger         zerolog.Logger
 }
 
 func NewUsersService(
@@ -61,13 +61,15 @@ func NewUsersService(
 	validator *validator.Validate,
 	userRepo repositories.UserRepository,
 	orderRepo repositories.OrderRepository,
+	withdrawalRepo repositories.WithdrawalRepository,
 ) UsersService {
 	return &UsersServiceImpl{
-		validator: validator,
-		cfg:       cfg,
-		userRepo:  userRepo,
-		orderRepo: orderRepo,
-		logger:    logger,
+		validator:      validator,
+		cfg:            cfg,
+		userRepo:       userRepo,
+		orderRepo:      orderRepo,
+		withdrawalRepo: withdrawalRepo,
+		logger:         logger,
 	}
 }
 
@@ -169,7 +171,7 @@ func (us *UsersServiceImpl) GetUserOrders(ctx context.Context) (models.OrdersDTO
 		return nil, err
 	}
 
-	orders, err := us.orderRepo.FindOrdersByUsername(ctx, claim.ID)
+	orders, err := us.orderRepo.FindByUsername(ctx, claim.ID)
 	if err != nil {
 		us.logger.Error().Err(err).Send()
 		return nil, ErrInternal
@@ -178,9 +180,20 @@ func (us *UsersServiceImpl) GetUserOrders(ctx context.Context) (models.OrdersDTO
 	return models.ToOrdersDTO(orders), nil
 }
 
-func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context) (string, error) {
-	// TODO("Implement")
-	return "", nil
+func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context) (models.WithdrawalsDTO, error) {
+	claim, err := claimFromCtx(ctx)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return nil, ErrInternal
+	}
+
+	withdrawals, err := us.withdrawalRepo.FindByUsername(ctx, claim.ID)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return nil, ErrInternal
+	}
+
+	return models.ToWithdrawalsDTO(withdrawals), nil
 }
 
 func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error {

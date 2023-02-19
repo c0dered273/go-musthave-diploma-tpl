@@ -148,19 +148,21 @@ func getUserOrders(logger zerolog.Logger, service services.UsersService) func(w 
 	}
 }
 
-func withdrawals(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
+func getUserWithdrawals(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		// TODO("Implement")
-
-		usrname, err := service.GetWithdrawals(r.Context())
+		withdrawals, err := service.GetWithdrawals(r.Context())
 		if err != nil {
 			models.WriteStatusError(w, err)
 			return
 		}
 
+		if len(withdrawals) == 0 {
+			http.Error(w, "no content", http.StatusNoContent)
+		}
+
+		withdrawalsResponse, err := easyjson.Marshal(withdrawals)
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write([]byte(usrname))
+		_, err = w.Write(withdrawalsResponse)
 		if err != nil {
 			logger.Error().Err(err).Send()
 			return

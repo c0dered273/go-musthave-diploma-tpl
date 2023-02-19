@@ -12,7 +12,7 @@ type OrderRepository interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	Save(ctx context.Context, order *models.Order) error
 	FindByID(ctx context.Context, orderID uint64) (*models.Order, error)
-	FindOrdersByUsername(ctx context.Context, username string) (models.Orders, error)
+	FindByUsername(ctx context.Context, username string) (models.Orders, error)
 }
 
 type OrderRepositoryImpl struct {
@@ -49,7 +49,7 @@ func (r *OrderRepositoryImpl) FindByID(ctx context.Context, orderID uint64) (*mo
 	return store.FindOrderByID(ctx, conn, orderID)
 }
 
-func (r *OrderRepositoryImpl) FindOrdersByUsername(ctx context.Context, username string) (models.Orders, error) {
+func (r *OrderRepositoryImpl) FindByUsername(ctx context.Context, username string) (models.Orders, error) {
 	conn, err := getPgxConn(ctx, r)
 	if err != nil {
 		return nil, err

@@ -58,11 +58,12 @@ func main() {
 	}
 	usersRepo := repositories.NewUserRepository(conn)
 	ordersRepo := repositories.NewOrderRepository(conn)
+	withdrawalsRepo := repositories.NewWithdrawalRepository(conn)
 
 	// services
 	serviceContext := &services.ServiceContext{
 		HealthService: services.NewHealthService(logger, connCheck),
-		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo, ordersRepo),
+		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo, ordersRepo, withdrawalsRepo),
 	}
 
 	// http server
