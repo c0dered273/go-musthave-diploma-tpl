@@ -42,8 +42,9 @@ type UsersService interface {
 	NewUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	LoginUser(ctx context.Context, login *models.LoginRequestDTO) (models.AuthResponseDTO, error)
 	CreateOrders(ctx context.Context, orderNumber string) error
-	GetUserOrders(ctx context.Context) (models.OrdersDTO, error)
+	GetOrders(ctx context.Context) (models.OrdersDTO, error)
 	GetWithdrawals(ctx context.Context) (models.WithdrawalsDTO, error)
+	GetBalance(ctx context.Context) (models.UserBalanceDTO, error)
 }
 
 type UsersServiceImpl struct {
@@ -165,7 +166,7 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 	return nil
 }
 
-func (us *UsersServiceImpl) GetUserOrders(ctx context.Context) (models.OrdersDTO, error) {
+func (us *UsersServiceImpl) GetOrders(ctx context.Context) (models.OrdersDTO, error) {
 	claim, err := claimFromCtx(ctx)
 	if err != nil {
 		return nil, err
@@ -194,6 +195,31 @@ func (us *UsersServiceImpl) GetWithdrawals(ctx context.Context) (models.Withdraw
 	}
 
 	return models.ToWithdrawalsDTO(withdrawals), nil
+}
+
+func (us *UsersServiceImpl) GetBalance(ctx context.Context) (models.UserBalanceDTO, error) {
+	claim, err := claimFromCtx(ctx)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return models.UserBalanceDTO{}, ErrInternal
+	}
+
+	balance, err := us.userRepo.GetUserBalance(ctx, claim.ID)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return models.UserBalanceDTO{}, ErrInternal
+	}
+
+	allWithdrawals, err := us.withdrawalRepo.GetAllWithdrawalByUsername(ctx, claim.ID)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return models.UserBalanceDTO{}, ErrInternal
+	}
+
+	return models.UserBalanceDTO{
+		Current:   balance.InexactFloat64(),
+		Withdrawn: allWithdrawals.InexactFloat64(),
+	}, nil
 }
 
 func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error {

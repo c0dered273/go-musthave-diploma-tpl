@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -183,12 +184,25 @@ func FindOrderByID(ctx context.Context, conn *pgxpool.Pool, orderID uint64) (*mo
 	return &order, nil
 }
 
+func GetUserBalance(ctx context.Context, conn *pgxpool.Pool, username string) (decimal.Decimal, error) {
+	sql := "SELECT u.balance FROM users u WHERE u.username = $1"
+
+	var balance decimal.Decimal
+	err := conn.QueryRow(ctx, sql, username).Scan(&balance)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	return balance, nil
+}
+
 func FindOrdersByUsername(ctx context.Context, conn *pgxpool.Pool, username string) (models.Orders, error) {
 	sql := `SELECT o.id, os.name, u.username, o.amount, o.uploaded_at 
 			FROM orders o 
 			    INNER JOIN order_status os on o.status_id = os.id 
 			    INNER JOIN users u on o.user_id = u.id 
-			WHERE u.username = $1`
+			WHERE u.username = $1
+			ORDER BY o.uploaded_at`
 
 	orders := make([]models.Order, 0)
 
@@ -241,4 +255,16 @@ func FindWithdrawalsByUsername(ctx context.Context, conn *pgxpool.Pool, username
 	}
 
 	return withdrawals, nil
+}
+
+func GetAllWithdrawalsSumByUsername(ctx context.Context, conn *pgxpool.Pool, username string) (decimal.Decimal, error) {
+	sql := "SELECT COALESCE(SUM(w.amount), 0) FROM withdrawals w INNER JOIN users u on w.user_id = u.id WHERE u.username = $1"
+
+	var allWithdrawal decimal.Decimal
+	err := conn.QueryRow(ctx, sql, username).Scan(&allWithdrawal)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	return allWithdrawal, nil
 }

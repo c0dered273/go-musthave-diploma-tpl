@@ -6,12 +6,14 @@ import (
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 )
 
 type UserRepository interface {
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	Save(ctx context.Context, u *models.User) error
 	FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error)
+	GetUserBalance(ctx context.Context, username string) (decimal.Decimal, error)
 }
 
 type UsersRepositoryImpl struct {
@@ -46,4 +48,12 @@ func (r *UsersRepositoryImpl) FindByNameAndPasswd(ctx context.Context, name stri
 		return nil, err
 	}
 	return store.FindUserByNameAndPasswd(ctx, conn, name, passwd)
+}
+
+func (r *UsersRepositoryImpl) GetUserBalance(ctx context.Context, username string) (decimal.Decimal, error) {
+	conn, err := getPgxConn(ctx, r)
+	if err != nil {
+		return decimal.Zero, err
+	}
+	return store.GetUserBalance(ctx, conn, username)
 }

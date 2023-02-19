@@ -16,3 +16,77 @@ var (
 	_ *jwriter.Writer
 	_ easyjson.Marshaler
 )
+
+func easyjson9e1087fdDecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(in *jlexer.Lexer, out *UserBalanceDTO) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "current":
+			out.Current = float64(in.Float64())
+		case "withdrawn":
+			out.Withdrawn = float64(in.Float64())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson9e1087fdEncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(out *jwriter.Writer, in UserBalanceDTO) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"current\":"
+		out.RawString(prefix[1:])
+		out.Float64(float64(in.Current))
+	}
+	if in.Withdrawn != 0 {
+		const prefix string = ",\"withdrawn\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Withdrawn))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v UserBalanceDTO) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson9e1087fdEncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v UserBalanceDTO) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson9e1087fdEncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *UserBalanceDTO) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson9e1087fdDecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *UserBalanceDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson9e1087fdDecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels(l, v)
+}

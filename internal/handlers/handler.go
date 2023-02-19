@@ -45,6 +45,7 @@ func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *serv
 			r.Use(middleware2.JwtVerifier(httpLogger, cfg.ApiSecret))
 			r.Post("/orders", addOrders(logger, services.UsersService))
 			r.Get("/orders", getUserOrders(logger, services.UsersService))
+			r.Get("/balance", getUserBalance(logger, services.UsersService))
 			r.Get("/withdrawals", getUserWithdrawals(logger, services.UsersService))
 		})
 	})

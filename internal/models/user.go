@@ -7,4 +7,8 @@ type User struct {
 	Password string
 }
 
-type Users []User
+//easyjson:json
+type UserBalanceDTO struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn,omitempty"`
+}
