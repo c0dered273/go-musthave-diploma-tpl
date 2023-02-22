@@ -44,3 +44,9 @@ type WithdrawalDTO struct {
 
 //easyjson:json
 type WithdrawalsDTO []WithdrawalDTO
+
+//easyjson:json
+type WithdrawRequest struct {
+	OrderID string  `json:"order"`
+	Sum     float64 `json:"sum"`
+}

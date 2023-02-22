@@ -164,6 +164,21 @@ func NewErrConflict(err error, errorCode string, message string) *ErrConflict {
 	}
 }
 
+type ErrPaymentRequired struct {
+	*StatusError
+}
+
+func NewErrPaymentRequired(err error, errorCode string, message string) *ErrPaymentRequired {
+	return &ErrPaymentRequired{
+		StatusError: NewStatusError(
+			err,
+			http.StatusPaymentRequired,
+			errorCode,
+			message,
+		),
+	}
+}
+
 type HttpStatusCreated struct {
 	*StatusError
 }

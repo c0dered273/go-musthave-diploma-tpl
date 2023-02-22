@@ -46,6 +46,7 @@ func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *serv
 			r.Post("/orders", addOrders(logger, services.UsersService))
 			r.Get("/orders", getUserOrders(logger, services.UsersService))
 			r.Get("/balance", getUserBalance(logger, services.UsersService))
+			r.Post("/balance/withdraw", withdrawBalance(logger, services.UsersService))
 			r.Get("/withdrawals", getUserWithdrawals(logger, services.UsersService))
 		})
 	})

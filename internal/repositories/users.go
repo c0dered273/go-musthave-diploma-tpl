@@ -2,18 +2,25 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
-	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
 
+var (
+	ErrBalanceNotEnough = errors.New("user balance not enough")
+)
+
 type UserRepository interface {
-	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	Save(ctx context.Context, u *models.User) error
 	FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error)
-	GetUserBalance(ctx context.Context, username string) (decimal.Decimal, error)
+	GetBalance(ctx context.Context, username string) (decimal.Decimal, error)
+	UpdateBalance(ctx context.Context, username string, newBalance decimal.Decimal) error
+	Withdrawing(ctx context.Context, username string, orderID string, amount decimal.Decimal) error
 }
 
 type UsersRepositoryImpl struct {
@@ -30,30 +37,79 @@ func (r *UsersRepositoryImpl) GetConn() *pgxpool.Pool {
 	return r.Conn
 }
 
-func (r *UsersRepositoryImpl) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
-	return withSQLTransaction(ctx, r, fn)
-}
-
 func (r *UsersRepositoryImpl) Save(ctx context.Context, u *models.User) error {
-	conn, err := getPgxConn(ctx, r)
+	sql := `INSERT INTO users(username, password, balance) 
+				VALUES($1, crypt($2, gen_salt('bf')), 0) 
+				ON CONFLICT DO NOTHING`
+
+	n, err := r.Conn.Exec(ctx, strip(sql), u.Username, u.Password)
 	if err != nil {
 		return err
 	}
-	return store.SaveUser(ctx, conn, u)
+
+	if n.RowsAffected() == 0 {
+		return ErrAlreadyExists
+	}
+
+	return nil
 }
 
 func (r *UsersRepositoryImpl) FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error) {
-	conn, err := getPgxConn(ctx, r)
+	sql := "SELECT username FROM users WHERE username=$1 AND password=crypt($2, password)"
+
+	var username string
+	err := r.Conn.QueryRow(ctx, sql, name, passwd).Scan(&username)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
-	return store.FindUserByNameAndPasswd(ctx, conn, name, passwd)
+
+	return &models.User{
+		Username: username,
+		Password: "",
+	}, nil
 }
 
-func (r *UsersRepositoryImpl) GetUserBalance(ctx context.Context, username string) (decimal.Decimal, error) {
-	conn, err := getPgxConn(ctx, r)
+func (r *UsersRepositoryImpl) GetBalance(ctx context.Context, username string) (decimal.Decimal, error) {
+	sql := "SELECT u.balance FROM users u WHERE u.username = $1"
+
+	var balance decimal.Decimal
+	err := r.Conn.QueryRow(ctx, sql, username).Scan(&balance)
 	if err != nil {
 		return decimal.Zero, err
 	}
-	return store.GetUserBalance(ctx, conn, username)
+
+	return balance, nil
+}
+
+func (r *UsersRepositoryImpl) UpdateBalance(ctx context.Context, username string, newBalance decimal.Decimal) error {
+	sql := "UPDATE users SET balance = $2 WHERE username = $1"
+
+	tag, err := r.Conn.Exec(ctx, sql, username, newBalance)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *UsersRepositoryImpl) Withdrawing(ctx context.Context, username string, orderID string, amount decimal.Decimal) error {
+	sql := "CALL withdraw_from_user_balance($1, $2, $3)"
+
+	_, err := r.Conn.Exec(ctx, sql, username, orderID, amount)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Message == "balance not enough" {
+			return ErrBalanceNotEnough
+		}
+		return err
+	}
+
+	return nil
 }

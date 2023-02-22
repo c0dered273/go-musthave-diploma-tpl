@@ -16,6 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -34,6 +35,7 @@ var (
 		"ORDER_ERROR",
 		"Order loaded by another user",
 	)
+	ErrPaymentRequired   = models.NewErrPaymentRequired(nil, "USER_ERROR", "Balance not enough")
 	ErrRequestValidation = models.NewErrBadRequest(nil, "SERVER_ERROR", "Request validation failed")
 	ErrInternal          = models.NewErrInternal(nil, "SERVER_ERROR", "Internal error")
 )
@@ -45,6 +47,7 @@ type UsersService interface {
 	GetOrders(ctx context.Context) (models.OrdersDTO, error)
 	GetWithdrawals(ctx context.Context) (models.WithdrawalsDTO, error)
 	GetBalance(ctx context.Context) (models.UserBalanceDTO, error)
+	CreateWithdraw(ctx context.Context, orderID string, amount decimal.Decimal) error
 }
 
 type UsersServiceImpl struct {
@@ -83,7 +86,7 @@ func (us *UsersServiceImpl) NewUser(ctx context.Context, login *models.LoginRequ
 	newUser := login.ToUser()
 	err = us.userRepo.Save(ctx, newUser)
 	if err != nil {
-		if errors.Is(err, store.ErrUserAlreadyExists) {
+		if errors.Is(err, store.ErrAlreadyExists) {
 			us.logger.Error().Err(err).Send()
 			return models.AuthResponseDTO{}, ErrUserAlreadyExist
 		}
@@ -156,7 +159,7 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 
 	err = us.orderRepo.Save(ctx, newOrder)
 	if err != nil {
-		if errors.Is(err, store.ErrOrderAlreadyExists) {
+		if errors.Is(err, store.ErrAlreadyExists) {
 			return models.NewStatusCreated("Order already exists")
 		}
 		us.logger.Error().Err(err).Send()
@@ -204,7 +207,7 @@ func (us *UsersServiceImpl) GetBalance(ctx context.Context) (models.UserBalanceD
 		return models.UserBalanceDTO{}, ErrInternal
 	}
 
-	balance, err := us.userRepo.GetUserBalance(ctx, claim.ID)
+	balance, err := us.userRepo.GetBalance(ctx, claim.ID)
 	if err != nil {
 		us.logger.Error().Err(err).Send()
 		return models.UserBalanceDTO{}, ErrInternal
@@ -220,6 +223,24 @@ func (us *UsersServiceImpl) GetBalance(ctx context.Context) (models.UserBalanceD
 		Current:   balance.InexactFloat64(),
 		Withdrawn: allWithdrawals.InexactFloat64(),
 	}, nil
+}
+
+func (us *UsersServiceImpl) CreateWithdraw(ctx context.Context, orderID string, amount decimal.Decimal) error {
+	claim, err := claimFromCtx(ctx)
+	if err != nil {
+		us.logger.Error().Err(err).Send()
+		return ErrInternal
+	}
+
+	err = us.userRepo.Withdrawing(ctx, claim.ID, orderID, amount)
+	if err != nil {
+		if errors.Is(err, repositories.ErrBalanceNotEnough) {
+			return ErrPaymentRequired
+		}
+		return ErrInternal
+	}
+
+	return nil
 }
 
 func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error {

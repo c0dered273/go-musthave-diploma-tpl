@@ -165,3 +165,76 @@ func (v *WithdrawalDTO) UnmarshalJSON(data []byte) error {
 func (v *WithdrawalDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson52c08f61DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(l, v)
 }
+func easyjson52c08f61DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(in *jlexer.Lexer, out *WithdrawRequest) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "order":
+			out.OrderID = string(in.String())
+		case "sum":
+			out.Sum = float64(in.Float64())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson52c08f61EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(out *jwriter.Writer, in WithdrawRequest) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"order\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.OrderID))
+	}
+	{
+		const prefix string = ",\"sum\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Sum))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v WithdrawRequest) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson52c08f61EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v WithdrawRequest) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson52c08f61EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *WithdrawRequest) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson52c08f61DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *WithdrawRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson52c08f61DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(l, v)
+}

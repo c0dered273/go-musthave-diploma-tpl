@@ -9,6 +9,7 @@ import (
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/services"
 	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -158,6 +159,7 @@ func getUserWithdrawals(logger zerolog.Logger, service services.UsersService) fu
 
 		if len(withdrawals) == 0 {
 			http.Error(w, "no content", http.StatusNoContent)
+			return
 		}
 
 		withdrawalsResponse, err := easyjson.Marshal(withdrawals)
@@ -181,6 +183,38 @@ func getUserBalance(logger zerolog.Logger, service services.UsersService) func(w
 		balanceResponse, err := easyjson.Marshal(balance)
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(balanceResponse)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			return
+		}
+	}
+}
+
+func withdrawBalance(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			models.WriteStatusError(w, ErrParseRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		request := models.WithdrawRequest{}
+		err = easyjson.Unmarshal(body, &request)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			models.WriteStatusError(w, ErrParseRequest)
+			return
+		}
+
+		err = service.CreateWithdraw(r.Context(), request.OrderID, decimal.NewFromFloat(request.Sum))
+		if err != nil {
+			models.WriteStatusError(w, err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 		if err != nil {
 			logger.Error().Err(err).Send()
 			return
