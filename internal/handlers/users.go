@@ -139,6 +139,11 @@ func getUserOrders(logger zerolog.Logger, service services.UsersService) func(w 
 		}
 
 		ordersResponse, err := easyjson.Marshal(orders)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			models.WriteStatusError(w, ErrServerError)
+			return
+		}
 
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(ordersResponse)
@@ -163,6 +168,12 @@ func getUserWithdrawals(logger zerolog.Logger, service services.UsersService) fu
 		}
 
 		withdrawalsResponse, err := easyjson.Marshal(withdrawals)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			models.WriteStatusError(w, ErrServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(withdrawalsResponse)
 		if err != nil {
@@ -208,16 +219,12 @@ func withdrawBalance(logger zerolog.Logger, service services.UsersService) func(
 			return
 		}
 
-		err = service.CreateWithdraw(r.Context(), request.OrderID, decimal.NewFromFloat(request.Sum))
+		err = service.WithdrawBalance(r.Context(), request.OrderID, decimal.NewFromFloat(request.Sum))
 		if err != nil {
 			models.WriteStatusError(w, err)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		if err != nil {
-			logger.Error().Err(err).Send()
-			return
-		}
 	}
 }

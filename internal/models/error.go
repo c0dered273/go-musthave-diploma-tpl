@@ -9,15 +9,15 @@ import (
 	_ "github.com/mailru/easyjson/gen"
 )
 
-type HttpError interface {
-	HttpError(w http.ResponseWriter) error
+type HTTPError interface {
+	HTTPError(w http.ResponseWriter) error
 }
 
 //go:generate easyjson error.go
 //easyjson:json
 type StatusError struct {
 	Err       error     `json:"-"`
-	HttpCode  int       `json:"-"`
+	HTTPCode  int       `json:"-"`
 	Timestamp time.Time `json:"timestamp,omitempty"`
 	ErrorCode string    `json:"errorCode,omitempty"`
 	Message   string    `json:"message,omitempty"`
@@ -27,10 +27,10 @@ func (se *StatusError) Error() string {
 	return se.Err.Error()
 }
 
-func (se *StatusError) HttpError(w http.ResponseWriter) error {
+func (se *StatusError) HTTPError(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(se.HttpCode)
+	w.WriteHeader(se.HTTPCode)
 	_, _, err := easyjson.MarshalToHTTPResponseWriter(se, w)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (se *StatusError) HttpError(w http.ResponseWriter) error {
 func NewStatusError(err error, httpCode int, errorCode string, message string) *StatusError {
 	return &StatusError{
 		Err:       err,
-		HttpCode:  httpCode,
+		HTTPCode:  httpCode,
 		Timestamp: time.Now(),
 		ErrorCode: errorCode,
 		Message:   message,
@@ -49,13 +49,13 @@ func NewStatusError(err error, httpCode int, errorCode string, message string) *
 }
 
 func WriteStatusError(w http.ResponseWriter, err error) {
-	if statusErr, ok := err.(HttpError); ok {
-		errSts := statusErr.HttpError(w)
+	if statusErr, ok := err.(HTTPError); ok {
+		errSts := statusErr.HTTPError(w)
 		if errSts != nil {
 			panic(err)
 		}
 	} else {
-		panic(errors.New("status error: failed to cast err to HttpError"))
+		panic(errors.New("status error: failed to cast err to HTTPError"))
 	}
 }
 
@@ -179,12 +179,12 @@ func NewErrPaymentRequired(err error, errorCode string, message string) *ErrPaym
 	}
 }
 
-type HttpStatusCreated struct {
+type HTTPStatusCreated struct {
 	*StatusError
 }
 
-func NewStatusCreated(message string) *HttpStatusCreated {
-	return &HttpStatusCreated{
+func NewStatusCreated(message string) *HTTPStatusCreated {
+	return &HTTPStatusCreated{
 		StatusError: NewStatusError(
 			nil,
 			http.StatusAccepted,

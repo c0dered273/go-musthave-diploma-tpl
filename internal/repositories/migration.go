@@ -24,7 +24,7 @@ func ApplyMigration(logger zerolog.Logger, cfg *configs.ServerConfig) error {
 		return err
 	}
 
-	db, err := sql.Open("pgx", cfg.DatabaseUri)
+	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
 		return err
 	}

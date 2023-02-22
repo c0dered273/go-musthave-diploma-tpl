@@ -50,8 +50,8 @@ func NewPgxConn(ctx context.Context, logger zerolog.Logger, cfg *configs.ServerC
 
 func connStringWithOptions(cfg *configs.ServerConfig) string {
 	var sb strings.Builder
-	isFirstParam := !strings.Contains(cfg.DatabaseUri, "?")
-	sb.WriteString(cfg.DatabaseUri)
+	isFirstParam := !strings.Contains(cfg.DatabaseURI, "?")
+	sb.WriteString(cfg.DatabaseURI)
 
 	if options := cfg.Database.Connection.Options; len(options) > 0 {
 		for key, value := range options {

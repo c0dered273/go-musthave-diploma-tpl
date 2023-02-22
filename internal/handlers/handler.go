@@ -42,7 +42,7 @@ func NewHandler(logger zerolog.Logger, cfg *configs.ServerConfig, services *serv
 		r.Post("/login", loginUser(httpLogger, services.UsersService))
 
 		r.Group(func(r chi.Router) {
-			r.Use(middleware2.JwtVerifier(httpLogger, cfg.ApiSecret))
+			r.Use(middleware2.JwtVerifier(httpLogger, cfg.APISecret))
 			r.Post("/orders", addOrders(logger, services.UsersService))
 			r.Get("/orders", getUserOrders(logger, services.UsersService))
 			r.Get("/balance", getUserBalance(logger, services.UsersService))

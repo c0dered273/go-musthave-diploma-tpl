@@ -47,7 +47,7 @@ type UsersService interface {
 	GetOrders(ctx context.Context) (models.OrdersDTO, error)
 	GetWithdrawals(ctx context.Context) (models.WithdrawalsDTO, error)
 	GetBalance(ctx context.Context) (models.UserBalanceDTO, error)
-	CreateWithdraw(ctx context.Context, orderID string, amount decimal.Decimal) error
+	WithdrawBalance(ctx context.Context, orderID string, amount decimal.Decimal) error
 }
 
 type UsersServiceImpl struct {
@@ -225,7 +225,7 @@ func (us *UsersServiceImpl) GetBalance(ctx context.Context) (models.UserBalanceD
 	}, nil
 }
 
-func (us *UsersServiceImpl) CreateWithdraw(ctx context.Context, orderID string, amount decimal.Decimal) error {
+func (us *UsersServiceImpl) WithdrawBalance(ctx context.Context, orderID string, amount decimal.Decimal) error {
 	claim, err := claimFromCtx(ctx)
 	if err != nil {
 		us.logger.Error().Err(err).Send()
@@ -237,6 +237,7 @@ func (us *UsersServiceImpl) CreateWithdraw(ctx context.Context, orderID string, 
 		if errors.Is(err, repositories.ErrBalanceNotEnough) {
 			return ErrPaymentRequired
 		}
+		us.logger.Error().Err(err).Send()
 		return ErrInternal
 	}
 
@@ -252,7 +253,7 @@ func (us *UsersServiceImpl) loginValidation(login *models.LoginRequestDTO) error
 }
 
 func (us *UsersServiceImpl) authResponse(user *models.User) (models.AuthResponseDTO, error) {
-	tokenString, err := generateToken(user, us.cfg.ApiSecret)
+	tokenString, err := generateToken(user, us.cfg.APISecret)
 	if err != nil {
 		us.logger.Error().Err(err).Send()
 		return models.AuthResponseDTO{}, ErrInternal

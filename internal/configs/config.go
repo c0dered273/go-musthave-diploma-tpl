@@ -24,9 +24,9 @@ var (
 
 type ServerConfig struct {
 	RunAddress           string   `mapstructure:"run_address" validate:"required"`
-	DatabaseUri          string   `mapstructure:"database_uri" validate:"required"`
+	DatabaseURI          string   `mapstructure:"database_uri" validate:"required"`
 	AccrualSystemAddress string   `mapstructure:"accrual_system_address" validate:"required"`
-	ApiSecret            string   `mapstructure:"api_secret" validate:"required"`
+	APISecret            string   `mapstructure:"api_secret" validate:"required"`
 	Database             Database `mapstructure:"database"`
 	Server               Server   `mapstructure:"server"`
 }
