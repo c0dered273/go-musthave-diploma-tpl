@@ -192,6 +192,12 @@ func getUserBalance(logger zerolog.Logger, service services.UsersService) func(w
 		}
 
 		balanceResponse, err := easyjson.Marshal(balance)
+		if err != nil {
+			logger.Error().Err(err).Send()
+			models.WriteStatusError(w, ErrServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(balanceResponse)
 		if err != nil {
