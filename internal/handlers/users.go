@@ -121,7 +121,7 @@ func addOrders(logger zerolog.Logger, service services.UsersService) func(w http
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 

@@ -187,7 +187,7 @@ func NewStatusCreated(message string) *HTTPStatusCreated {
 	return &HTTPStatusCreated{
 		StatusError: NewStatusError(
 			nil,
-			http.StatusAccepted,
+			http.StatusOK,
 			"",
 			message,
 		),
