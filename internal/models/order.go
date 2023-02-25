@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -91,3 +92,31 @@ type OrderDTO struct {
 
 //easyjson:json
 type OrdersDTO []OrderDTO
+
+//easyjson:json
+type AccrualOrderDTO struct {
+	ID      string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual"`
+}
+
+func (au AccrualOrderDTO) ToOrder() (Order, error) {
+	orderID, err := strconv.ParseUint(au.ID, 10, 64)
+	if err != nil {
+		return Order{}, err
+	}
+
+	status, err := ParseStatus(au.Status)
+	if err != nil {
+		return Order{}, err
+	}
+
+	amount := decimal.NewFromFloat(au.Accrual)
+
+	return Order{
+		ID:         orderID,
+		Status:     status,
+		Amount:     &amount,
+		UploadedAt: time.Now(),
+	}, nil
+}

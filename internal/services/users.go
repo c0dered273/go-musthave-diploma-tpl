@@ -7,14 +7,16 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/clients"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/configs"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/middleware"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/models"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/repositories"
-	"github.com/c0dered273/go-musthave-diploma-tpl/internal/store"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/validators"
 	"github.com/go-playground/validator/v10"
+	"github.com/go-resty/resty/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
@@ -56,6 +58,7 @@ type UsersServiceImpl struct {
 	userRepo       repositories.UserRepository
 	orderRepo      repositories.OrderRepository
 	withdrawalRepo repositories.WithdrawalRepository
+	accrualClient  *resty.Client
 	logger         zerolog.Logger
 }
 
@@ -66,6 +69,7 @@ func NewUsersService(
 	userRepo repositories.UserRepository,
 	orderRepo repositories.OrderRepository,
 	withdrawalRepo repositories.WithdrawalRepository,
+	accrualClient *resty.Client,
 ) UsersService {
 	return &UsersServiceImpl{
 		validator:      validator,
@@ -73,6 +77,7 @@ func NewUsersService(
 		userRepo:       userRepo,
 		orderRepo:      orderRepo,
 		withdrawalRepo: withdrawalRepo,
+		accrualClient:  accrualClient,
 		logger:         logger,
 	}
 }
@@ -86,7 +91,7 @@ func (us *UsersServiceImpl) NewUser(ctx context.Context, login *models.LoginRequ
 	newUser := login.ToUser()
 	err = us.userRepo.Save(ctx, newUser)
 	if err != nil {
-		if errors.Is(err, store.ErrAlreadyExists) {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			us.logger.Error().Err(err).Send()
 			return models.AuthResponseDTO{}, ErrUserAlreadyExist
 		}
@@ -106,7 +111,7 @@ func (us *UsersServiceImpl) LoginUser(ctx context.Context, login *models.LoginRe
 
 	user, err := us.userRepo.FindByNameAndPasswd(ctx, login.Login, login.Password)
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		if errors.Is(err, repositories.ErrNotFound) {
 			us.logger.Error().Msgf("server: username or passwd invalid, login: %s", login.Login)
 			return models.AuthResponseDTO{}, ErrWrongLoginPasswd
 		}
@@ -136,7 +141,7 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 
 	existsOrder, err := us.orderRepo.FindByID(ctx, orderID)
 	if err != nil {
-		if !errors.Is(err, store.ErrNotFound) {
+		if !errors.Is(err, repositories.ErrNotFound) {
 			us.logger.Error().Err(err).Send()
 			return ErrInternal
 		}
@@ -159,12 +164,44 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 
 	err = us.orderRepo.Save(ctx, newOrder)
 	if err != nil {
-		if errors.Is(err, store.ErrAlreadyExists) {
+		if errors.Is(err, repositories.ErrAlreadyExists) {
 			return models.NewStatusCreated("Order already exists")
 		}
 		us.logger.Error().Err(err).Send()
 		return ErrInternal
 	}
+
+	// TODO("Отрефакторить, вынести работу с базой в хранимку с транзакцией")
+
+	go func() {
+		get, err := us.accrualClient.R().Get(clients.AccrualURL + orderString)
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
+
+		accrualOrderResponse := models.AccrualOrderDTO{}
+		err = easyjson.Unmarshal(get.Body(), &accrualOrderResponse)
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
+
+		order, err := accrualOrderResponse.ToOrder()
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
+
+		err = us.orderRepo.UpdateByID(context.Background(), order.ID, order.Status, *order.Amount)
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
+
+		err = us.userRepo.AccrueBalance(context.Background(), claim.ID, *order.Amount)
+
+	}()
 
 	return nil
 }

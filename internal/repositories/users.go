@@ -19,7 +19,7 @@ type UserRepository interface {
 	Save(ctx context.Context, u *models.User) error
 	FindByNameAndPasswd(ctx context.Context, name string, passwd string) (*models.User, error)
 	GetBalance(ctx context.Context, username string) (decimal.Decimal, error)
-	UpdateBalance(ctx context.Context, username string, newBalance decimal.Decimal) error
+	AccrueBalance(ctx context.Context, username string, amount decimal.Decimal) error
 	Withdrawing(ctx context.Context, username string, orderID string, amount decimal.Decimal) error
 }
 
@@ -84,10 +84,10 @@ func (r *UsersRepositoryImpl) GetBalance(ctx context.Context, username string) (
 	return balance, nil
 }
 
-func (r *UsersRepositoryImpl) UpdateBalance(ctx context.Context, username string, newBalance decimal.Decimal) error {
-	sql := "UPDATE users SET balance = $2 WHERE username = $1"
+func (r *UsersRepositoryImpl) AccrueBalance(ctx context.Context, username string, amount decimal.Decimal) error {
+	sql := "UPDATE users SET balance = balance + $2 WHERE username = $1"
 
-	tag, err := r.Conn.Exec(ctx, sql, username, newBalance)
+	tag, err := r.Conn.Exec(ctx, sql, username, amount)
 	if err != nil {
 		return err
 	}

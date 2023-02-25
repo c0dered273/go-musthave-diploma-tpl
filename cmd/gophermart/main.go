@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/c0dered273/go-musthave-diploma-tpl/internal/clients"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/configs"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/handlers"
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/loggers"
@@ -50,6 +51,9 @@ func main() {
 		logger.Fatal().Err(err).Msg("server: DB migration init failed")
 	}
 
+	//REST client
+	accrualClient := clients.NewAccrualClient(cfg)
+
 	// repositories
 	conn, err := store.NewPgxConn(serverCtx, logger, cfg)
 	connCheck := store.NewPgxConnCheck(conn)
@@ -63,7 +67,7 @@ func main() {
 	// services
 	serviceContext := &services.ServiceContext{
 		HealthService: services.NewHealthService(logger, connCheck),
-		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo, ordersRepo, withdrawalsRepo),
+		UsersService:  services.NewUsersService(logger, cfg, validator, usersRepo, ordersRepo, withdrawalsRepo, accrualClient),
 	}
 
 	// http server

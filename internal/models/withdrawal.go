@@ -11,7 +11,7 @@ import (
 type Withdrawal struct {
 	OrderID     string
 	Username    string
-	Amount      *decimal.Decimal
+	Amount      decimal.Decimal
 	ProcessedAt time.Time
 }
 

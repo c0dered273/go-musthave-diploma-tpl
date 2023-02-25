@@ -172,3 +172,83 @@ func (v *OrderDTO) UnmarshalJSON(data []byte) error {
 func (v *OrderDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels1(l, v)
 }
+func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(in *jlexer.Lexer, out *AccrualOrderDTO) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "order":
+			out.ID = string(in.String())
+		case "status":
+			out.Status = string(in.String())
+		case "accrual":
+			out.Accrual = float64(in.Float64())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(out *jwriter.Writer, in AccrualOrderDTO) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"order\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.ID))
+	}
+	{
+		const prefix string = ",\"status\":"
+		out.RawString(prefix)
+		out.String(string(in.Status))
+	}
+	{
+		const prefix string = ",\"accrual\":"
+		out.RawString(prefix)
+		out.Float64(float64(in.Accrual))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v AccrualOrderDTO) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v AccrualOrderDTO) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *AccrualOrderDTO) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *AccrualOrderDTO) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels2(l, v)
+}
