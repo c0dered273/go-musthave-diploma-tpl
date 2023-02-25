@@ -13,7 +13,6 @@ import (
 type ClaimCtxKey struct{}
 
 var (
-	ErrNoTokenFound = models.NewErrBadRequest(nil, "AUTH_ERROR", "Access token not found")
 	ErrInvalidToken = models.NewErrUnauthorized(nil, "AUTH_ERROR", "Access token invalid")
 )
 
@@ -48,7 +47,7 @@ func tokenFromHeader(r *http.Request) (string, error) {
 	if len(bearer) > 7 && strings.ToUpper(bearer[0:6]) == "BEARER" {
 		return bearer[7:], nil
 	}
-	return "", ErrNoTokenFound
+	return "", ErrInvalidToken
 }
 
 func validateToken(tokenString string, secret string) (*models.AuthClaim, error) {
