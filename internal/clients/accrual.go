@@ -14,7 +14,7 @@ const (
 
 func NewAccrualClient(cfg *configs.ServerConfig) *resty.Client {
 	return resty.New().
-		SetBaseURL("http://" + cfg.AccrualSystemAddress).
+		SetBaseURL(cfg.AccrualSystemAddress).
 		SetRetryCount(5).
 		SetRetryMaxWaitTime(120 * time.Second).
 		AddRetryCondition(func(response *resty.Response, err error) bool {

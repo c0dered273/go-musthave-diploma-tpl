@@ -1,5 +1,5 @@
 run_address: "localhost:8080"
-accrual_system_address: "localhost:8081"
+accrual_system_address: "http://localhost:8081"
 
 database:
   logger_level: "info"
