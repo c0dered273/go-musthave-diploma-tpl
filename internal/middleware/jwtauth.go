@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 
@@ -14,9 +13,8 @@ import (
 type ClaimCtxKey struct{}
 
 var (
-	ErrNoTokenFound            = models.NewErrBadRequest(nil, "AUTH_ERROR", "Access token not found")
-	ErrTokenVerificationFailed = models.NewErrBadRequest(nil, "AUTH_ERROR", "Access token verification failed")
-	ErrInvalidToken            = models.NewErrUnauthorized(nil, "AUTH_ERROR", "Access token invalid")
+	ErrNoTokenFound = models.NewErrBadRequest(nil, "AUTH_ERROR", "Access token not found")
+	ErrInvalidToken = models.NewErrUnauthorized(nil, "AUTH_ERROR", "Access token invalid")
 )
 
 // TODO("To refactor")
@@ -32,13 +30,8 @@ func JwtVerifier(logger zerolog.Logger, secret string) func(http.Handler) http.H
 
 			claims, err := validateToken(tokenString, secret)
 			if err != nil {
-				if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
-					models.WriteStatusError(w, ErrInvalidToken)
-					return
-				}
-
 				logger.Error().Err(err).Send()
-				models.WriteStatusError(w, ErrTokenVerificationFailed)
+				models.WriteStatusError(w, ErrInvalidToken)
 				return
 			}
 

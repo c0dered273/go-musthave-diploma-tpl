@@ -200,6 +200,10 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 		}
 
 		err = us.userRepo.AccrueBalance(context.Background(), claim.ID, *order.Amount)
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
 
 	}()
 
