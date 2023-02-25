@@ -103,7 +103,7 @@ func easyjson120d1ca2DecodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 		}
 		switch key {
 		case "number":
-			out.ID = uint64(in.Uint64())
+			out.ID = string(in.String())
 		case "status":
 			out.Status = string(in.String())
 		case "accrual":
@@ -129,7 +129,7 @@ func easyjson120d1ca2EncodeGithubComC0dered273GoMusthaveDiplomaTplInternalModels
 	{
 		const prefix string = ",\"number\":"
 		out.RawString(prefix[1:])
-		out.Uint64(uint64(in.ID))
+		out.String(string(in.ID))
 	}
 	{
 		const prefix string = ",\"status\":"

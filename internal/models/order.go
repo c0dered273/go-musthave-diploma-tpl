@@ -63,7 +63,7 @@ func (o Order) toOrderDTO() OrderDTO {
 	}
 
 	return OrderDTO{
-		ID:         o.ID,
+		ID:         strconv.FormatUint(o.ID, 10),
 		Status:     o.Status.String(),
 		Amount:     o.Amount.InexactFloat64(),
 		UploadedAt: o.UploadedAt,
@@ -84,7 +84,7 @@ func ToOrdersDTO(o Orders) OrdersDTO {
 
 //easyjson:json
 type OrderDTO struct {
-	ID         uint64    `json:"number"`
+	ID         string    `json:"number"`
 	Status     string    `json:"status"`
 	Amount     float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
