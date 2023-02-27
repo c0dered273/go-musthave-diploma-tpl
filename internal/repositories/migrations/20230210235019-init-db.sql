@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS order_status
     name VARCHAR(32) UNIQUE NOT NULL
 );
 
+INSERT INTO order_status(name)
+VALUES ('NEW'),
+       ('PROCESSING'),
+       ('INVALID'),
+       ('PROCESSED');
+
 CREATE TABLE IF NOT EXISTS orders
 (
     id          DECIMAL PRIMARY KEY,
@@ -102,6 +108,8 @@ $$;
 DROP EXTENSION IF EXISTS pgcrypto;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS order_status;
+TRUNCATE TABLE order_status
+    RESTART IDENTITY;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS withdrawals;
 DROP PROCEDURE withdraw_from_user_balance(character varying,character varying,numeric);
