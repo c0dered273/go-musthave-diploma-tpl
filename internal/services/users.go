@@ -301,7 +301,7 @@ func generateToken(user *models.User, secret string) (string, error) {
 }
 
 func claimFromCtx(ctx context.Context) (*models.AuthClaim, error) {
-	claim, ok := ctx.Value(middleware.ClaimCtxKey{}).(*models.AuthClaim)
+	claim, ok := ctx.Value(middleware.ClaimCtxKey).(*models.AuthClaim)
 	if !ok {
 		return nil, ErrInvalidToken
 	}

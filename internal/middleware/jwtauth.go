@@ -10,7 +10,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type ClaimCtxKey struct{}
+var (
+	ClaimCtxKey CtxKeyType = "claim"
+)
+
+type CtxKeyType string
 
 var (
 	ErrInvalidToken = models.NewErrUnauthorized(nil, "AUTH_ERROR", "Access token invalid")
@@ -34,7 +38,7 @@ func JwtVerifier(logger zerolog.Logger, secret string) func(http.Handler) http.H
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ClaimCtxKey{}, claims)
+			ctx := context.WithValue(r.Context(), ClaimCtxKey, claims)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
