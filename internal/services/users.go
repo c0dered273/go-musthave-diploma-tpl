@@ -171,40 +171,18 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 		return ErrInternal
 	}
 
-	// TODO("Отрефакторить, вынести работу с базой в хранимку с транзакцией")
-
 	go func() {
-		get, err := us.accrualClient.R().Get(clients.AccrualURL + orderString)
+		err := asyncGetOrderStatus(
+			context.Background(),
+			us.accrualClient,
+			us.userRepo,
+			us.orderRepo,
+			claim.ID,
+			orderString,
+		)
 		if err != nil {
 			us.logger.Error().Err(err).Send()
-			return
 		}
-
-		accrualOrderResponse := models.AccrualOrderDTO{}
-		err = easyjson.Unmarshal(get.Body(), &accrualOrderResponse)
-		if err != nil {
-			us.logger.Error().Err(err).Send()
-			return
-		}
-
-		order, err := accrualOrderResponse.ToOrder()
-		if err != nil {
-			us.logger.Error().Err(err).Send()
-			return
-		}
-
-		err = us.orderRepo.UpdateByID(context.Background(), order.ID, order.Status, *order.Amount)
-		if err != nil {
-			us.logger.Error().Err(err).Send()
-			return
-		}
-
-		err = us.userRepo.AccrueBalance(context.Background(), claim.ID, *order.Amount)
-		if err != nil {
-			us.logger.Error().Err(err).Send()
-			return
-		}
-
 	}()
 
 	return nil
@@ -357,4 +335,41 @@ func luhnChecksum(number uint64) uint64 {
 		number = number / 10
 	}
 	return luhn % 10
+}
+
+func asyncGetOrderStatus(
+	ctx context.Context,
+	accrualClient *resty.Client,
+	userRepo repositories.UserRepository,
+	orderRepo repositories.OrderRepository,
+	userName string,
+	orderString string,
+) error {
+	get, err := accrualClient.R().Get(clients.AccrualURL + orderString)
+	if err != nil {
+		return err
+	}
+
+	accrualOrderResponse := models.AccrualOrderDTO{}
+	err = easyjson.Unmarshal(get.Body(), &accrualOrderResponse)
+	if err != nil {
+		return err
+	}
+
+	order, err := accrualOrderResponse.ToOrder()
+	if err != nil {
+		return err
+	}
+
+	err = orderRepo.UpdateByID(ctx, order.ID, order.Status, *order.Amount)
+	if err != nil {
+		return err
+	}
+
+	err = userRepo.AccrueBalance(ctx, userName, *order.Amount)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
