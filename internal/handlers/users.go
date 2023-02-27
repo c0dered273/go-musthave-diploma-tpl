@@ -9,7 +9,6 @@ import (
 	"github.com/c0dered273/go-musthave-diploma-tpl/internal/services"
 	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
-	"github.com/shopspring/decimal"
 )
 
 var (
@@ -98,33 +97,6 @@ func loginUser(logger zerolog.Logger, service services.UsersService) func(w http
 	}
 }
 
-func addOrders(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.Header.Get("Content-Type")
-		if contentType != "text/plain" {
-			logger.Error().Err(ErrContentType).Send()
-			models.WriteStatusError(w, ErrContentType)
-			return
-		}
-
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
-			return
-		}
-		defer r.Body.Close()
-
-		err = service.CreateOrders(r.Context(), string(body))
-		if err != nil {
-			models.WriteStatusError(w, err)
-			return
-		}
-
-		w.WriteHeader(http.StatusAccepted)
-	}
-}
-
 func getUserOrders(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		orders, err := service.GetOrders(r.Context())
@@ -204,33 +176,5 @@ func getUserBalance(logger zerolog.Logger, service services.UsersService) func(w
 			logger.Error().Err(err).Send()
 			return
 		}
-	}
-}
-
-func withdrawBalance(logger zerolog.Logger, service services.UsersService) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
-			return
-		}
-		defer r.Body.Close()
-
-		request := models.WithdrawRequest{}
-		err = easyjson.Unmarshal(body, &request)
-		if err != nil {
-			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
-			return
-		}
-
-		err = service.WithdrawBalance(r.Context(), request.OrderID, decimal.NewFromFloat(request.Sum))
-		if err != nil {
-			models.WriteStatusError(w, err)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
 	}
 }
