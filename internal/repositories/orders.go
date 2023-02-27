@@ -14,9 +14,7 @@ type OrderRepository interface {
 	Save(ctx context.Context, order *models.Order) error
 	FindByID(ctx context.Context, orderID uint64) (*models.Order, error)
 	FindByUsername(ctx context.Context, username string) (models.Orders, error)
-	UpdateOrderAndUserBalance(
-		ctx context.Context, username string, orderID uint64, status models.OrderStatus, amount decimal.Decimal,
-	) error
+	UpdateByID(ctx context.Context, orderID uint64, status models.OrderStatus, amount decimal.Decimal) error
 }
 
 type OrderRepositoryImpl struct {
@@ -116,12 +114,13 @@ func (r *OrderRepositoryImpl) FindByUsername(ctx context.Context, username strin
 	return orders, nil
 }
 
-func (r *OrderRepositoryImpl) UpdateOrderAndUserBalance(
-	ctx context.Context, username string, orderID uint64, status models.OrderStatus, amount decimal.Decimal,
-) error {
-	sql := "CALL update_order_status_and_user_balance($1, $2, &3, &4)"
+func (r *OrderRepositoryImpl) UpdateByID(ctx context.Context, orderID uint64, status models.OrderStatus, amount decimal.Decimal) error {
+	sql := `UPDATE orders SET
+                  status_id = (SELECT os.id FROM order_status os WHERE os.name = $2),
+                  amount = $3
+              WHERE ID = $1`
 
-	tag, err := r.Conn.Exec(ctx, sql, username, orderID, status, amount)
+	tag, err := r.Conn.Exec(ctx, sql, orderID, status, amount)
 	if err != nil {
 		return err
 	}

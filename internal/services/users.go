@@ -193,9 +193,13 @@ func (us *UsersServiceImpl) CreateOrders(ctx context.Context, orderString string
 			return
 		}
 
-		err = us.orderRepo.UpdateOrderAndUserBalance(
-			context.Background(), claim.ID, order.ID, order.Status, *order.Amount,
-		)
+		err = us.orderRepo.UpdateByID(context.Background(), order.ID, order.Status, *order.Amount)
+		if err != nil {
+			us.logger.Error().Err(err).Send()
+			return
+		}
+
+		err = us.userRepo.AccrueBalance(context.Background(), claim.ID, *order.Amount)
 		if err != nil {
 			us.logger.Error().Err(err).Send()
 			return
