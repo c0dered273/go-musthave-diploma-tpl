@@ -48,15 +48,17 @@ func NewStatusError(err error, httpCode int, errorCode string, message string) *
 	}
 }
 
-func WriteStatusError(w http.ResponseWriter, err error) {
+func WriteStatusError(w http.ResponseWriter, err error) error {
 	if statusErr, ok := err.(HTTPError); ok {
 		errSts := statusErr.HTTPError(w)
 		if errSts != nil {
-			panic(err)
+			return errSts
 		}
 	} else {
-		panic(errors.New("status error: failed to cast err to HTTPError"))
+		return errors.New("status error: failed to cast err to HTTPError")
 	}
+
+	return nil
 }
 
 type ErrInternal struct {

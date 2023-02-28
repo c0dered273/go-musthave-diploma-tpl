@@ -14,21 +14,24 @@ func addOrders(logger zerolog.Logger, service services.UsersService) func(w http
 		contentType := r.Header.Get("Content-Type")
 		if contentType != "text/plain" {
 			logger.Error().Err(ErrContentType).Send()
-			models.WriteStatusError(w, ErrContentType)
+			err := models.WriteStatusError(w, ErrContentType)
+			logger.Error().Err(err).Send()
 			return
 		}
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
+			err = models.WriteStatusError(w, ErrParseRequest)
+			logger.Error().Err(err).Send()
 			return
 		}
 		defer r.Body.Close()
 
 		err = service.CreateOrders(r.Context(), string(body))
 		if err != nil {
-			models.WriteStatusError(w, err)
+			err = models.WriteStatusError(w, err)
+			logger.Error().Err(err).Send()
 			return
 		}
 

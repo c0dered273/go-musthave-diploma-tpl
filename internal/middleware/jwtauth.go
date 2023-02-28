@@ -27,14 +27,16 @@ func JwtVerifier(logger zerolog.Logger, secret string) func(http.Handler) http.H
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			tokenString, err := tokenFromHeader(r)
 			if err != nil {
-				models.WriteStatusError(w, err)
+				err = models.WriteStatusError(w, err)
+				logger.Error().Err(err).Send()
 				return
 			}
 
 			claims, err := validateToken(tokenString, secret)
 			if err != nil {
 				logger.Error().Err(err).Send()
-				models.WriteStatusError(w, ErrInvalidToken)
+				err = models.WriteStatusError(w, ErrInvalidToken)
+				logger.Error().Err(err).Send()
 				return
 			}
 

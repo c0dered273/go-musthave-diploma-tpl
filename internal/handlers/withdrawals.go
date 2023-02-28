@@ -16,7 +16,8 @@ func withdrawBalance(logger zerolog.Logger, service services.UsersService) func(
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
+			err = models.WriteStatusError(w, ErrParseRequest)
+			logger.Error().Err(err).Send()
 			return
 		}
 		defer r.Body.Close()
@@ -25,13 +26,15 @@ func withdrawBalance(logger zerolog.Logger, service services.UsersService) func(
 		err = easyjson.Unmarshal(body, &request)
 		if err != nil {
 			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, ErrParseRequest)
+			err = models.WriteStatusError(w, ErrParseRequest)
+			logger.Error().Err(err).Send()
 			return
 		}
 
 		err = service.WithdrawBalance(r.Context(), request.OrderID, decimal.NewFromFloat(request.Sum))
 		if err != nil {
-			models.WriteStatusError(w, err)
+			err = models.WriteStatusError(w, err)
+			logger.Error().Err(err).Send()
 			return
 		}
 

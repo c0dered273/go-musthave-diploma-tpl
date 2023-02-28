@@ -61,7 +61,7 @@ func notAllowed() func(w http.ResponseWriter, r *http.Request) {
 			"HTTP_ERROR",
 			"Method not allowed",
 		)
-		models.WriteStatusError(w, err)
+		_ = models.WriteStatusError(w, err)
 	}
 }
 
@@ -72,7 +72,7 @@ func notFound() func(w http.ResponseWriter, r *http.Request) {
 			"HTTP_ERROR",
 			"Endpoint not found",
 		)
-		models.WriteStatusError(w, err)
+		_ = models.WriteStatusError(w, err)
 	}
 }
 
@@ -92,7 +92,8 @@ func readyProbe(logger zerolog.Logger, health services.HealthService) func(w htt
 		w.Header().Set("Content-Type", "text/plain")
 		if err := health.ConnPing(r.Context()); err != nil {
 			logger.Error().Err(err).Send()
-			models.WriteStatusError(w, err)
+			err = models.WriteStatusError(w, err)
+			logger.Error().Err(err).Send()
 			return
 		}
 		w.WriteHeader(http.StatusOK)
