@@ -1,0 +1,20 @@
+run_address: "localhost:8080"
+accrual_system_address: "http://localhost:8081"
+
+database:
+  logger_level: "info"
+  connection:
+    options:
+      pool_max_conns: 10
+      pool_min_conns: 2
+      pool_max_conn_lifetime: 120s
+      pool_max_conn_idle_time: 30s
+
+server:
+  name: "gophermart"
+  debug_config: false
+  pprof_enable: true
+  logger:
+    level: "debug"
+    caller: false
+    format: "pretty"
